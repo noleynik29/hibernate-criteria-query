@@ -41,27 +41,32 @@ public class PhoneDaoImpl extends AbstractDao implements PhoneDao {
 
     @Override
     public List<Phone> findAll(Map<String, String[]> params) {
-        Transaction transaction = null;
-        try (Session session = factory.openSession()) {
-            transaction = session.beginTransaction();
-            CriteriaBuilder criteriaBuilder = session.getCriteriaBuilder();
-            CriteriaQuery<Phone> query = criteriaBuilder.createQuery(Phone.class);
-            Root<Phone> root = query.from(Phone.class);
-            List<Predicate> predicates = new ArrayList<>();
-            for (Map.Entry<String, String[]> entry : params.entrySet()) {
-                String field = entry.getKey();
-                String value = entry.getValue()[0];
-
-                predicates.add(criteriaBuilder.equal(root.get(field), value));
+        Session session = factory.openSession();
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<Phone> cq = cb.createQuery(Phone.class);
+        Root<Phone> root = cq.from(Phone.class);
+        List<Predicate> predicates = new ArrayList<>();
+        if (params.containsKey("countryManufactured")) {
+            String[] countries = params.get("countryManufactured");
+            if (countries != null && countries.length > 0) {
+                predicates.add(root.get("countryManufactured").in((Object[]) countries));
             }
-            query.where(criteriaBuilder.and(predicates.toArray(new Predicate[0])));
-            transaction.commit();
-            return session.createQuery(query).getResultList();
-        } catch (Exception e) {
-            if (transaction != null) {
-                transaction.rollback();
-            }
-            throw new RuntimeException("Error getting phones", e);
         }
+        if (params.containsKey("maker")) {
+            String[] makers = params.get("maker");
+            if (makers != null && makers.length > 0) {
+                predicates.add(root.get("maker").in((Object[]) makers));
+            }
+        }
+        if (params.containsKey("color")) {
+            String[] colors = params.get("color");
+            if (colors != null && colors.length > 0) {
+                predicates.add(root.get("color").in((Object[]) colors));
+            }
+        }
+
+        cq.where(predicates.toArray(new Predicate[0]));
+        return session.createQuery(cq).getResultList();
     }
+
 }
